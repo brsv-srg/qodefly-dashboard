@@ -20,7 +20,7 @@ export default function LandingPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
 
   function openModal(mode: "register" | "login" | "waitlist") {
-    setModal(mode === "waitlist" ? "waitlist" : "auth");
+    setModal(mode);
     setTab(mode === "login" ? "login" : "register");
     setError("");
     setSuccess(null);
