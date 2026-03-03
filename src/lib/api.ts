@@ -13,6 +13,24 @@ export interface AuthResponse {
   user: User;
 }
 
+export interface Project {
+  id: number;
+  name: string;
+  slug: string;
+  description: string;
+  html_code?: string;
+  status: string;
+  version: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface GenerateResult {
+  html: string;
+  name: string;
+  description: string;
+}
+
 class ApiClient {
   private getToken(): string | null {
     if (typeof window === "undefined") return null;
@@ -63,6 +81,7 @@ class ApiClient {
     return data as T;
   }
 
+  // Auth
   async register(email: string, password: string): Promise<AuthResponse> {
     const data = await this.request<AuthResponse>("/auth/register", {
       method: "POST",
@@ -90,6 +109,48 @@ class ApiClient {
       method: "POST",
       body: JSON.stringify({ email }),
     });
+  }
+
+  // Projects
+  async generateProject(
+    prompt: string,
+    projectId?: number,
+    designPreferences?: string
+  ): Promise<GenerateResult> {
+    return this.request<GenerateResult>("/projects/generate", {
+      method: "POST",
+      body: JSON.stringify({
+        prompt,
+        project_id: projectId || null,
+        design_preferences: designPreferences || null,
+      }),
+    });
+  }
+
+  async saveProject(name: string, description: string, htmlCode: string): Promise<Project> {
+    return this.request<Project>("/projects", {
+      method: "POST",
+      body: JSON.stringify({ name, description, html_code: htmlCode }),
+    });
+  }
+
+  async listProjects(): Promise<{ total: number; projects: Project[] }> {
+    return this.request("/projects");
+  }
+
+  async getProject(id: number): Promise<Project> {
+    return this.request<Project>(`/projects/${id}`);
+  }
+
+  async updateProject(id: number, prompt: string): Promise<{ id: number; version: number; html: string }> {
+    return this.request(`/projects/${id}`, {
+      method: "PUT",
+      body: JSON.stringify({ prompt }),
+    });
+  }
+
+  async deleteProject(id: number): Promise<void> {
+    await this.request(`/projects/${id}`, { method: "DELETE" });
   }
 }
 
