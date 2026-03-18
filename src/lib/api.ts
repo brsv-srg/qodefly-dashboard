@@ -21,6 +21,8 @@ export interface Project {
   html_code?: string;
   status: string;
   version: number;
+  design_preferences?: Record<string, unknown>;
+  context_md?: string;
   created_at: string;
   updated_at: string;
 }
@@ -29,6 +31,18 @@ export interface GenerateResult {
   html: string;
   name: string;
   description: string;
+}
+
+export interface Resource {
+  id: number;
+  resource_type: string;
+  name: string;
+  description: string;
+  content?: string;
+  mime_type?: string;
+  file_size?: number;
+  url?: string;
+  created_at?: string;
 }
 
 class ApiClient {
@@ -129,6 +143,19 @@ class ApiClient {
     });
   }
 
+  async createProject(
+    name?: string,
+    designPreferences?: Record<string, unknown>
+  ): Promise<Project> {
+    return this.request<Project>("/projects", {
+      method: "POST",
+      body: JSON.stringify({
+        name: name || "Untitled Project",
+        design_preferences: designPreferences || null,
+      }),
+    });
+  }
+
   async saveProject(name: string, description: string, htmlCode: string): Promise<Project> {
     return this.request<Project>("/projects", {
       method: "POST",
@@ -144,15 +171,85 @@ class ApiClient {
     return this.request<Project>(`/projects/${id}`);
   }
 
-  async updateProject(id: number, prompt: string): Promise<{ id: number; version: number; html: string }> {
+  async updateProject(
+    id: number,
+    body: {
+      prompt?: string;
+      name?: string;
+      description?: string;
+      design_preferences?: Record<string, unknown>;
+      context_md?: string;
+      html_code?: string;
+    }
+  ): Promise<{ id: number; version: number; html: string }> {
     return this.request(`/projects/${id}`, {
       method: "PUT",
-      body: JSON.stringify({ prompt }),
+      body: JSON.stringify(body),
     });
   }
 
   async deleteProject(id: number): Promise<void> {
     await this.request(`/projects/${id}`, { method: "DELETE" });
+  }
+
+  // Resources
+  async listResources(projectId: number): Promise<{ resources: Resource[] }> {
+    return this.request(`/projects/${projectId}/resources`);
+  }
+
+  async addTextResource(
+    projectId: number,
+    name: string,
+    content: string,
+    description?: string
+  ): Promise<Resource> {
+    return this.request(`/projects/${projectId}/resources`, {
+      method: "POST",
+      body: JSON.stringify({
+        resource_type: "text",
+        name,
+        content,
+        description: description || "",
+      }),
+    });
+  }
+
+  async uploadFileResource(
+    projectId: number,
+    file: File,
+    resourceType: string = "image",
+    description: string = ""
+  ): Promise<Resource> {
+    const token = this.getToken();
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("name", file.name);
+    formData.append("resource_type", resourceType);
+    formData.append("description", description);
+
+    const res = await fetch(`${API_BASE}/projects/${projectId}/resources`, {
+      method: "POST",
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: formData,
+    });
+
+    if (res.status === 401) {
+      this.clearToken();
+      if (typeof window !== "undefined") {
+        window.location.href = "/app/login";
+      }
+      throw new Error("Unauthorized");
+    }
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || "Upload failed");
+    return data as Resource;
+  }
+
+  async deleteResource(projectId: number, resourceId: number): Promise<void> {
+    await this.request(`/projects/${projectId}/resources/${resourceId}`, {
+      method: "DELETE",
+    });
   }
 }
 

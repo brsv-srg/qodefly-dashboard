@@ -1,13 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { api, Project } from "@/lib/api";
 
 export default function DashboardPage() {
-  const router = useRouter();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
+  const [creating, setCreating] = useState(false);
 
   useEffect(() => {
     api
@@ -18,6 +17,19 @@ export default function DashboardPage() {
       })
       .catch(() => setLoading(false));
   }, []);
+
+  async function handleNewProject() {
+    if (creating) return;
+    setCreating(true);
+    try {
+      const project = await api.createProject();
+      window.location.href = `/app/project/${project.id}?setup=true`;
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to create project";
+      alert(message);
+      setCreating(false);
+    }
+  }
 
   async function handleDelete(id: number, name: string) {
     if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
@@ -40,10 +52,11 @@ export default function DashboardPage() {
           </p>
         </div>
         <button
-          onClick={() => window.location.href = "/app/new"}
-          className="px-5 py-2.5 bg-gradient-to-r from-brand-500 to-[#8b5cf6] rounded-lg text-sm font-semibold text-white hover:-translate-y-0.5 hover:shadow-lg hover:shadow-brand-500/30 transition-all inline-flex items-center gap-2"
+          onClick={handleNewProject}
+          disabled={creating}
+          className="px-5 py-2.5 bg-gradient-to-r from-brand-500 to-[#8b5cf6] rounded-lg text-sm font-semibold text-white hover:-translate-y-0.5 hover:shadow-lg hover:shadow-brand-500/30 transition-all inline-flex items-center gap-2 disabled:opacity-60"
         >
-          ✨ New Project
+          {creating ? "Creating..." : "New Project"}
         </button>
       </div>
 
@@ -62,7 +75,7 @@ export default function DashboardPage() {
               {/* Preview thumbnail */}
               <div
                 className="h-40 bg-[#0a0f1a] border-b border-white/10 flex items-center justify-center cursor-pointer"
-                onClick={() => router.push(`/app/project/${p.id}`)}
+                onClick={() => window.location.href = `/app/project/${p.id}`}
               >
                 <span className="text-3xl opacity-30">🖥️</span>
               </div>
@@ -71,7 +84,7 @@ export default function DashboardPage() {
                 <div className="flex items-start justify-between mb-2">
                   <h3
                     className="text-white font-medium text-sm truncate cursor-pointer hover:text-brand-400 transition-colors"
-                    onClick={() => router.push(`/app/project/${p.id}`)}
+                    onClick={() => window.location.href = `/app/project/${p.id}`}
                   >
                     {p.name}
                   </h3>
@@ -94,7 +107,7 @@ export default function DashboardPage() {
                   <span>v{p.version}</span>
                   <div className="flex gap-2">
                     <button
-                      onClick={() => router.push(`/app/project/${p.id}`)}
+                      onClick={() => window.location.href = `/app/project/${p.id}`}
                       className="text-brand-400 hover:text-brand-300 transition-colors"
                     >
                       Edit
@@ -125,10 +138,11 @@ export default function DashboardPage() {
             you. No coding required — just your ideas.
           </p>
           <button
-            onClick={() => window.location.href = "/app/new"}
-            className="px-8 py-3 bg-gradient-to-r from-brand-500 to-[#8b5cf6] rounded-xl text-sm font-semibold text-white hover:-translate-y-0.5 hover:shadow-lg hover:shadow-brand-500/30 transition-all inline-flex items-center gap-2"
+            onClick={handleNewProject}
+            disabled={creating}
+            className="px-8 py-3 bg-gradient-to-r from-brand-500 to-[#8b5cf6] rounded-xl text-sm font-semibold text-white hover:-translate-y-0.5 hover:shadow-lg hover:shadow-brand-500/30 transition-all inline-flex items-center gap-2 disabled:opacity-60"
           >
-            ✨ Create with AI
+            {creating ? "Creating..." : "Create with AI"}
           </button>
 
           <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-4 max-w-2xl mx-auto">
