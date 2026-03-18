@@ -48,7 +48,8 @@ export default function NewProjectPage() {
       const result = await api.generateProject(
         userMsg,
         undefined,
-        hasDesignPrefs ? designPrefs : undefined
+        hasDesignPrefs ? designPrefs : undefined,
+        html || undefined
       );
       setHtml(result.html);
       if (!projectName) {

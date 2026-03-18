@@ -115,7 +115,8 @@ class ApiClient {
   async generateProject(
     prompt: string,
     projectId?: number,
-    designPreferences?: string
+    designPreferences?: string,
+    existingCode?: string
   ): Promise<GenerateResult> {
     return this.request<GenerateResult>("/projects/generate", {
       method: "POST",
@@ -123,6 +124,7 @@ class ApiClient {
         prompt,
         project_id: projectId || null,
         design_preferences: designPreferences || null,
+        existing_code: existingCode || null,
       }),
     });
   }
