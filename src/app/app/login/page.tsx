@@ -19,7 +19,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await api.login(email, password);
-      router.push("/app");
+      window.location.href = "/app";
     } catch (err: any) {
       setError(err.message || "Invalid email or password");
     } finally {
@@ -41,7 +41,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await api.register(email, password);
-      router.push("/app");
+      window.location.href = "/app";
     } catch (err: any) {
       setError(err.message || "Registration failed");
     } finally {
