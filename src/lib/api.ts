@@ -23,14 +23,27 @@ export interface Project {
   version: number;
   design_preferences?: Record<string, unknown>;
   context_md?: string;
+  decisions?: Record<string, unknown>;
   created_at: string;
   updated_at: string;
 }
 
-export interface GenerateResult {
-  html: string;
-  name: string;
-  description: string;
+export interface ChatMessage {
+  id: number;
+  role: "user" | "assistant" | "system";
+  content: string;
+  actions?: Record<string, unknown> | null;
+  created_at: string;
+}
+
+export interface ChatResponse {
+  message: ChatMessage;
+  project_updates: {
+    html_code?: string;
+    version?: number;
+    design_preferences?: Record<string, unknown>;
+    decisions?: Record<string, unknown>;
+  };
 }
 
 export interface Resource {
@@ -39,10 +52,19 @@ export interface Resource {
   name: string;
   description: string;
   content?: string;
+  section?: string;
   mime_type?: string;
   file_size?: number;
   url?: string;
   created_at?: string;
+}
+
+export interface ContentBlock {
+  id?: number;
+  section: string;
+  field: string;
+  content: string;
+  sort_order?: number;
 }
 
 class ApiClient {
@@ -126,23 +148,6 @@ class ApiClient {
   }
 
   // Projects
-  async generateProject(
-    prompt: string,
-    projectId?: number,
-    designPreferences?: string,
-    existingCode?: string
-  ): Promise<GenerateResult> {
-    return this.request<GenerateResult>("/projects/generate", {
-      method: "POST",
-      body: JSON.stringify({
-        prompt,
-        project_id: projectId || null,
-        design_preferences: designPreferences || null,
-        existing_code: existingCode || null,
-      }),
-    });
-  }
-
   async createProject(
     name?: string,
     designPreferences?: Record<string, unknown>
@@ -153,13 +158,6 @@ class ApiClient {
         name: name || "Untitled Project",
         design_preferences: designPreferences || null,
       }),
-    });
-  }
-
-  async saveProject(name: string, description: string, htmlCode: string): Promise<Project> {
-    return this.request<Project>("/projects", {
-      method: "POST",
-      body: JSON.stringify({ name, description, html_code: htmlCode }),
     });
   }
 
@@ -190,6 +188,18 @@ class ApiClient {
 
   async deleteProject(id: number): Promise<void> {
     await this.request(`/projects/${id}`, { method: "DELETE" });
+  }
+
+  // Chat Messages
+  async getMessages(projectId: number): Promise<{ messages: ChatMessage[] }> {
+    return this.request(`/projects/${projectId}/messages`);
+  }
+
+  async sendMessage(projectId: number, content: string): Promise<ChatResponse> {
+    return this.request(`/projects/${projectId}/messages`, {
+      method: "POST",
+      body: JSON.stringify({ content }),
+    });
   }
 
   // Resources
@@ -246,9 +256,46 @@ class ApiClient {
     return data as Resource;
   }
 
+  async patchResource(
+    projectId: number,
+    resourceId: number,
+    updates: { section?: string; description?: string }
+  ): Promise<void> {
+    await this.request(`/projects/${projectId}/resources/${resourceId}`, {
+      method: "PATCH",
+      body: JSON.stringify(updates),
+    });
+  }
+
   async deleteResource(projectId: number, resourceId: number): Promise<void> {
     await this.request(`/projects/${projectId}/resources/${resourceId}`, {
       method: "DELETE",
+    });
+  }
+
+  // Content Blocks
+  async getContentBlocks(projectId: number): Promise<{ blocks: ContentBlock[] }> {
+    return this.request(`/projects/${projectId}/content`);
+  }
+
+  async upsertContentBlocks(projectId: number, blocks: ContentBlock[]): Promise<void> {
+    await this.request(`/projects/${projectId}/content`, {
+      method: "PUT",
+      body: JSON.stringify({ blocks }),
+    });
+  }
+
+  async deleteContentBlock(projectId: number, blockId: number): Promise<void> {
+    await this.request(`/projects/${projectId}/content/${blockId}`, {
+      method: "DELETE",
+    });
+  }
+
+  // Decisions
+  async updateDecisions(projectId: number, decisions: Record<string, unknown>): Promise<void> {
+    await this.request(`/projects/${projectId}/decisions`, {
+      method: "PUT",
+      body: JSON.stringify({ decisions }),
     });
   }
 }

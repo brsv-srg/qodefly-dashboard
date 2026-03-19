@@ -23,7 +23,7 @@ export default function DashboardPage() {
     setCreating(true);
     try {
       const project = await api.createProject();
-      window.location.href = `/app/project/${project.id}?setup=true`;
+      window.location.href = `/app/project/${project.id}?tab=chat`;
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to create project";
       alert(message);
